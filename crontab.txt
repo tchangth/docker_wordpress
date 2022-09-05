@@ -1,0 +1,1 @@
+0 18 * * 1 /home/ubuntu/wordpress/ssl_renewal.sh >> /var/log/cron_docker.log 2>&1

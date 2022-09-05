@@ -1,0 +1,76 @@
+version: '3.5'
+
+services:
+ #MySQL Service
+ db:
+  image: mysql
+  container_name: db
+  restart: unless-stopped
+  env_file: .env
+  environment:
+   - MYSQL_DATABASE=wordpress
+  volumes:
+   - dbdata:/var/lib/mysql
+  command: '--default-authentication-plugin=mysql_native_password'
+  networks:
+   - app-network
+ 
+ #WordPress application code Service
+ app:
+  depends_on:
+   - db
+  image: wordpress:6.0.1-fpm-alpine
+  container_name: app
+  restart: unless-stopped
+  env_file: .env
+  environment:
+   - WORDPRESS_DB_HOST=db:3306
+   - WORDPRESS_DB_USER=$MYSQL_USER
+   - WORDPRESS_DB_PASSWORD=$MYSQL_PASSWORD
+   - WORDPRESS_DB_NAME=wordpress
+   - WORDPRESS_CONFIG_EXTRA=
+       define('FS_METHOD', 'direct');
+       define('DISALLOW_FILE_EDIT', true);
+  volumes:
+   - app:/var/www/html
+  networks:
+   - app-network
+ 
+ #Webserver Nginx service
+ webserver:
+  depends_on:
+   - app
+  image: nginx
+  container_name: webserver
+  restart: unless-stopped
+  ports:
+   - "80:80"
+   - "443:443"
+  volumes:
+   - app:/var/www/html
+   - ./nginx-conf:/etc/nginx/conf.d
+   - certbot-etc:/etc/letsencrypt
+  networks:
+   - app-network
+ 
+ #certbot service
+ certbot:
+  depends_on:
+   - webserver
+  image: certbot/certbot
+  container_name: certbot
+  volumes:
+   - certbot-etc:/etc/letsencrypt
+   - app:/var/www/html
+  command: certonly --webroot --webroot-path=/var/www/html --email admin@example.com --agree-tos --no-eff-email --force-renewal -d example.com -d www.example.com
+ 
+ #Volumes
+volumes:
+ certbot-etc:
+ app:
+ dbdata:
+ 
+ #Networks
+networks:
+ app-network:
+  driver: bridge

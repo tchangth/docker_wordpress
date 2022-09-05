@@ -1,0 +1,1 @@
+sudo docker run  -p 8080:80  --network wordpress_app-network  -e PMA_HOST=db   -d phpmyadmin/phpmyadmin
